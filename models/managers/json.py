@@ -1,6 +1,5 @@
 import os
 import json
-import time
 from difflib import SequenceMatcher
 
 class JsonQAHandler:

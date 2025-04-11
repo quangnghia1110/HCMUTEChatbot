@@ -1,17 +1,11 @@
 from flask import Flask, request, jsonify
 import os
 import time
-from dotenv import load_dotenv
 from flask_cors import CORS
 import google.generativeai as genai
+from config import GOOGLE_API_KEY
 
-load_dotenv()
-
-API_KEY = os.getenv("GOOGLE_API_KEY")
-if not API_KEY:
-    raise ValueError("GOOGLE_API_KEY is required")
-
-genai.configure(api_key=API_KEY)
+genai.configure(api_key=GOOGLE_API_KEY)
 
 from models.managers.pdf import process_directory_pdfs
 from models.processors.text_splitter import get_text_chunks

@@ -2,10 +2,7 @@ import os
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.docstore.document import Document
-from dotenv import load_dotenv
-load_dotenv()
-# Tải cấu hình mô hình embedding từ biến môi trường
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
+from config import EMBEDDING_MODEL
 
 def get_vector_database(text_chunks):
     """Tạo và trả về vector store từ các chunks văn bản"""

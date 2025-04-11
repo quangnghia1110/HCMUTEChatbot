@@ -1,8 +1,5 @@
 import hashlib
 import time
-from dotenv import load_dotenv
-
-load_dotenv()
 
 class QueryCache:
     def __init__(self):

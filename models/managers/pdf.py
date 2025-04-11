@@ -1,17 +1,19 @@
 import os
 import time
 from PyPDF2 import PdfReader
-
-PDF_SOURCE = "SoTaySinhVien2024.pdf"
-
+from config import PDF_SOURCE
 def process_directory_pdfs(force_reprocess=False, get_text_chunks_fn=None, get_vector_database_fn=None):
     """Xử lý file PDF từ thư mục data"""
     try:
-        pdf_path = os.path.join("data", PDF_SOURCE)
+        # Check if PDF_SOURCE is an absolute path or relative path
+        if os.path.isabs(PDF_SOURCE):
+            pdf_path = PDF_SOURCE
+        else:
+            pdf_path = os.path.join("data", PDF_SOURCE)
         
         # Kiểm tra file tồn tại
         if not os.path.exists(pdf_path):
-            return f"Không tìm thấy file {PDF_SOURCE} trong thư mục data.", False
+            return f"Không tìm thấy file {pdf_path}.", False
             
         # Kiểm tra cache
         if not force_reprocess and os.path.exists("faiss_index") and os.path.exists("faiss_index/index.faiss"):

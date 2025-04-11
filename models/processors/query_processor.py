@@ -3,15 +3,9 @@ from models.processors.small_talk import is_small_talk
 from models.storages.vector_database import load_vector_database
 from models.managers.cache import query_cache
 from models.managers.json import JsonQAHandler
-import time
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from config import PDF_SOURCE
 
 json = JsonQAHandler()
-
-PDF_SOURCE = "SoTaySinhVien2024.pdf"
 
 # Cải tiến 1: Cache các vector database để tránh load lại nhiều lần
 vector_database = None

@@ -70,7 +70,7 @@ def is_small_talk(question):
         "thông minh thế nào", "hiểu được gì", "ngu hay thông minh", "có tốt không", "có hay không"
     ]
     political_topics = [
-        "chính trị", "đảng", "chính phủ", "nhà nước", "bầu cử", "chính sách", "quốc hội",
+        "chính trị", "đảng", "chính phủ", "bầu cử", "chính sách", "quốc hội",
         "thủ tướng", "chủ tịch nước", "tổng bí thư", "tổng thống", "nghị sĩ", "bộ trưởng",
         "dân chủ", "độc tài", "cộng hòa", "xã hội chủ nghĩa", "tư bản", "cách mạng", 
         "biểu tình", "chống đối", "phản động", "đối lập", "quyền lực", "quyền tự do",

@@ -1,11 +1,5 @@
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE")) 
-CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP"))  
+from config import CHUNK_SIZE, CHUNK_OVERLAP
 
 def get_text_chunks(text_with_metadata):
     """Chia văn bản thành các đoạn nhỏ hơn"""
@@ -47,6 +41,10 @@ def get_text_chunks(text_with_metadata):
                 })
         else:
             final_docs.append(doc)
+    
+    print(f"\n{'='*50}")
+    print(f"Tổng số chunk được tạo từ PDF: {len(final_docs)}")
+    print(f"{'='*50}\n")
     
     return final_docs
 
