@@ -9,5 +9,4 @@ langchain-google-genai==0.0.5
 faiss-cpu
 gunicorn==20.1.0
 PyPDF2==3.0.1
-numpy>=1.26.0
 rank_bm25
