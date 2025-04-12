@@ -19,10 +19,25 @@ def get_conversational_chain():
     - Chỉ dùng thông tin từ tài liệu dưới đây.
     - Không bịa đặt hoặc thêm thông tin ngoài tài liệu.
     - Nếu không có thông tin, trả lời: "Xin lỗi, mình không tìm thấy thông tin này trong tài liệu. Bạn có thể hỏi lại hoặc tham khảo thêm từ phòng công tác sinh viên nhé."
-    - Trả lời thân thiện, đầy đủ nhưng ngắn gọn, dùng bullet nếu cần chia mục.
+    - Trả lời thân thiện, đầy đủ nhưng ngắn gọn.
     - Bắt đầu câu trả lời bằng "Chào bạn," hoặc các từ ngữ thân thiện tương tự.
     - Kết thúc câu trả lời bằng các cụm từ như "Câu trả lời như thế bạn đã hài lòng hay chưa ạ?. Nếu còn câu hỏi nào vui lòng hỏi để mình giúp bạn trả lời" nếu phù hợp.
     - Không đề cập đến độ tin cậy.
+    
+    **Hướng dẫn về bảng**:
+    - Khi trình bày dữ liệu dạng bảng, sử dụng định dạng Markdown table với cột và hàng rõ ràng.
+    - Ghi rõ tiêu đề các cột.
+    - Đảm bảo căn chỉnh các cột phù hợp.
+    - Không sử dụng bullet points cho dữ liệu bảng.
+    - Trình bày đầy đủ giá trị của từng ô trong bảng.
+    
+    **Ví dụ về định dạng bảng**:
+    ```
+    | Xếp loại | Điểm số | Điểm quy đổi |
+    |----------|---------|--------------|
+    | Xuất sắc | 9.50-10 | 18           |
+    | Giỏi     | 8.50-8.99 | 16         |
+    ```
 
     **Tài liệu**: {context}
 
@@ -58,7 +73,8 @@ def get_gemini_response(vector_database, user_question, filter_pdf=None):
             if not docs:
                 return {
                     "output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.",
-                    "source_documents": []
+                    "source_documents": [],
+                    "structured_tables": []
                 }
             
             texts = [doc.page_content for doc in docs]
@@ -115,9 +131,14 @@ def get_gemini_response(vector_database, user_question, filter_pdf=None):
                     {"input_documents": relevant_docs, "question": user_question},
                     return_only_outputs=True
                 )
+                
+                # Áp dụng hậu xử lý cho bảng
+                processed_result = post_process_tables(result["output_text"])
+                
                 return {
-                    "output_text": result["output_text"],
-                    "source_documents": relevant_docs
+                    "output_text": processed_result["original_response"],
+                    "source_documents": relevant_docs,
+                    "structured_tables": processed_result["structured_tables"]
                 }
             except Exception as e:
                 retries += 1
@@ -125,7 +146,8 @@ def get_gemini_response(vector_database, user_question, filter_pdf=None):
                     print(f"Lỗi sau {MAX_RETRIES} lần thử: {str(e)}")
                     return {
                         "output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.",
-                        "source_documents": []
+                        "source_documents": [],
+                        "structured_tables": []
                     }
                 print(f"Lỗi lần {retries}: {str(e)}. Thử lại sau {BASE_DELAY} giây...")
                 time.sleep(BASE_DELAY)
@@ -134,5 +156,37 @@ def get_gemini_response(vector_database, user_question, filter_pdf=None):
         print(f"Lỗi: {str(e)}")
         return {
             "output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.",
-            "source_documents": []
+            "source_documents": [],
+            "structured_tables": []
         }
+
+def post_process_tables(response):
+    """Xử lý và cấu trúc lại các bảng trong phản hồi để dễ dàng chuyển đổi"""
+    # Phát hiện các bảng Markdown trong phản hồi
+    import re
+    
+    # Tìm tất cả các bảng Markdown
+    table_pattern = r'\|[^\n]+\|\n\|[-|\s]+\|\n(\|[^\n]+\|\n)+'
+    tables = re.findall(table_pattern, response)
+    
+    structured_tables = []
+    for table in tables:
+        lines = table.strip().split('\n')
+        headers = [h.strip() for h in lines[0].split('|')[1:-1]]
+        
+        data = []
+        for row in lines[2:]:  # Bỏ qua header và dòng phân cách
+            if row.strip():
+                values = [cell.strip() for cell in row.split('|')[1:-1]]
+                row_data = {headers[i]: values[i] for i in range(min(len(headers), len(values)))}
+                data.append(row_data)
+        
+        structured_tables.append({
+            'headers': headers,
+            'data': data
+        })
+    
+    return {
+        'original_response': response,
+        'structured_tables': structured_tables
+    }
