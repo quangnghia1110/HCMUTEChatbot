@@ -83,7 +83,7 @@ if initialize_data():
 else:
     print("⚠️ Dữ liệu chưa được khởi tạo hoàn chỉnh")
 
-port = int(os.getenv("PORT", 5000))
+port = int(os.getenv("PORT", 2000))
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 else:
