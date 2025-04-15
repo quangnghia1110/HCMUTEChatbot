@@ -5,8 +5,6 @@ from langchain.docstore.document import Document
 from config import EMBEDDING_MODEL
 
 def get_vector_database(text_chunks):
-    """Tạo và trả về vector store từ các chunks văn bản"""
-    # Chuẩn hóa các chunk
     normalized_chunks = []
     for chunk in text_chunks:
         text = chunk["page_content"]
@@ -14,10 +12,8 @@ def get_vector_database(text_chunks):
         normalized_chunk["page_content"] = text
         normalized_chunks.append(normalized_chunk)
     
-    # Tạo embeddings
     embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDING_MODEL)
     
-    # Tạo danh sách các đối tượng Document từ chunks
     documents = []
     for chunk in normalized_chunks:
         doc = Document(
@@ -26,29 +22,23 @@ def get_vector_database(text_chunks):
         )
         documents.append(doc)
     
-    # Kiểm tra thư mục faiss_index
     if not os.path.exists("faiss_index"):
         os.makedirs("faiss_index")
     
-    # Tạo FAISS vector store
     vector_database = FAISS.from_documents(
         documents=documents,
         embedding=embeddings,
     )
     
-    # Lưu vector store vào ổ đĩa
     vector_database.save_local("faiss_index")
     
     return vector_database
 
 def load_vector_database():
-    """Tải vector store từ ổ đĩa"""
     try:
-        # Kiểm tra xem faiss_index đã tồn tại chưa
         if not os.path.exists("faiss_index") or not os.path.exists("faiss_index/index.faiss"):
             return None, "Không tìm thấy thông tin bạn đưa ra. Vui lòng đặt câu hỏi khác."
         
-        # Tạo embeddings
         embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDING_MODEL)
         
         try:
@@ -65,4 +55,4 @@ def load_vector_database():
             return None, "Đã xảy ra lỗi khi tải dữ liệu vector. Vui lòng tải lại tài liệu PDF."
     
     except Exception as e:
-        return None, f"Lỗi: {str(e)}" 
+        return None, f"Lỗi: {str(e)}"

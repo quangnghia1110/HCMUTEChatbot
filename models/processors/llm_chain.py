@@ -87,58 +87,29 @@ def get_conversational_chain():
 
 def get_gemini_response(vector_database, user_question, filter_pdf=None):
     chain = get_conversational_chain()
-    
     try:
         if filter_pdf:
-            docs = [
-                doc for doc_id, doc in vector_database.docstore._dict.items()
-                if doc.metadata.get("source") == filter_pdf
-            ]
+            docs = [doc for doc_id, doc in vector_database.docstore._dict.items() if doc.metadata.get("source") == filter_pdf]
             if not docs:
-                return {
-                    "output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.",
-                    "source_documents": [],
-                    "structured_tables": []
-                }
-            
+                return {"output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.", "source_documents": [], "structured_tables": []}
             texts = [doc.page_content for doc in docs]
             tokenized_corpus = [text.lower().split() for text in texts]
             bm25 = BM25Okapi(tokenized_corpus)
             bm25_scores = bm25.get_scores(user_question.lower().split())
-            scored_docs = sorted(
-                [(doc, score) for doc, score in zip(docs, bm25_scores) if score > 0],
-                key=lambda x: x[1],
-                reverse=True
-            )
+            scored_docs = sorted([(doc, score) for doc, score in zip(docs, bm25_scores) if score > 0], key=lambda x: x[1], reverse=True)
             relevant_docs = [doc for doc, _ in scored_docs] or docs
         else:
-            vector_docs = vector_database.similarity_search_with_relevance_scores(
-                user_question, k=VECTOR_SEARCH_K
-            )
-            
+            vector_docs = vector_database.similarity_search_with_relevance_scores(user_question, k=VECTOR_SEARCH_K)
             texts = [doc.page_content for doc, _ in vector_docs]
             tokenized_corpus = [text.lower().split() for text in texts]
             bm25 = BM25Okapi(tokenized_corpus)
             bm25_scores = bm25.get_scores(user_question.lower().split())
-            
             combined_docs = {}
             for i, (doc, vector_score) in enumerate(vector_docs):
                 doc_hash = hashlib.md5(doc.page_content[:VECTOR_CONTENT_PREVIEW].encode()).hexdigest()
-                combined_score = (
-                    vector_score * SEMANTIC_WEIGHT +
-                    bm25_scores[i] * KEYWORD_WEIGHT
-                ) * VECTOR_SEARCH_WEIGHT
-                combined_docs[doc_hash] = (
-                    doc,
-                    max(
-                        combined_docs.get(doc_hash, (None, 0))[1],
-                        combined_score
-                    )
-                )
-            
-            relevant_docs = [
-                doc for doc, _ in sorted(combined_docs.values(), key=lambda x: x[1], reverse=True)
-            ]
+                combined_score = (vector_score * SEMANTIC_WEIGHT + bm25_scores[i] * KEYWORD_WEIGHT) * VECTOR_SEARCH_WEIGHT
+                combined_docs[doc_hash] = (doc, max(combined_docs.get(doc_hash, (None, 0))[1], combined_score))
+            relevant_docs = [doc for doc, _ in sorted(combined_docs.values(), key=lambda x: x[1], reverse=True)]
         
         for doc in relevant_docs:
             if not hasattr(doc, 'metadata'):
@@ -147,70 +118,36 @@ def get_gemini_response(vector_database, user_question, filter_pdf=None):
             doc.metadata.setdefault('page', 'không xác định')
         
         relevant_docs = relevant_docs[:MAX_DOCS]
-        
         retries = 0
         while retries < MAX_RETRIES:
             try:
-                result = chain.invoke(
-                    {"input_documents": relevant_docs, "question": user_question},
-                    return_only_outputs=True
-                )
-                
-                # Áp dụng hậu xử lý cho bảng
+                result = chain.invoke({"input_documents": relevant_docs, "question": user_question}, return_only_outputs=True)
                 processed_result = post_process_tables(result["output_text"])
-                
-                return {
-                    "output_text": processed_result["original_response"],
-                    "source_documents": relevant_docs,
-                    "structured_tables": processed_result["structured_tables"]
-                }
+                return {"output_text": processed_result["original_response"], "source_documents": relevant_docs, "structured_tables": processed_result["structured_tables"]}
             except Exception as e:
                 retries += 1
                 if retries == MAX_RETRIES:
                     print(f"Lỗi sau {MAX_RETRIES} lần thử: {str(e)}")
-                    return {
-                        "output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.",
-                        "source_documents": [],
-                        "structured_tables": []
-                    }
+                    return {"output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.", "source_documents": [], "structured_tables": []}
                 print(f"Lỗi lần {retries}: {str(e)}. Thử lại sau {BASE_DELAY} giây...")
                 time.sleep(BASE_DELAY)
-    
     except Exception as e:
         print(f"Lỗi: {str(e)}")
-        return {
-            "output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.",
-            "source_documents": [],
-            "structured_tables": []
-        }
+        return {"output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.", "source_documents": [], "structured_tables": []}
 
 def post_process_tables(response):
-    """Xử lý và cấu trúc lại các bảng trong phản hồi để dễ dàng chuyển đổi"""
-    # Phát hiện các bảng Markdown trong phản hồi
     import re
-    
-    # Tìm tất cả các bảng Markdown
     table_pattern = r'\|[^\n]+\|\n\|[-|\s]+\|\n(\|[^\n]+\|\n)+'
     tables = re.findall(table_pattern, response)
-    
     structured_tables = []
     for table in tables:
         lines = table.strip().split('\n')
         headers = [h.strip() for h in lines[0].split('|')[1:-1]]
-        
         data = []
-        for row in lines[2:]:  # Bỏ qua header và dòng phân cách
+        for row in lines[2:]:
             if row.strip():
                 values = [cell.strip() for cell in row.split('|')[1:-1]]
                 row_data = {headers[i]: values[i] for i in range(min(len(headers), len(values)))}
                 data.append(row_data)
-        
-        structured_tables.append({
-            'headers': headers,
-            'data': data
-        })
-    
-    return {
-        'original_response': response,
-        'structured_tables': structured_tables
-    }
+        structured_tables.append({'headers': headers, 'data': data})
+    return {'original_response': response, 'structured_tables': structured_tables}

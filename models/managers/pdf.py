@@ -2,24 +2,20 @@ import os
 import time
 from PyPDF2 import PdfReader
 from config import PDF_SOURCE
+
 def process_directory_pdfs(force_reprocess=False, get_text_chunks_fn=None, get_vector_database_fn=None):
-    """Xử lý file PDF từ thư mục data"""
     try:
-        # Check if PDF_SOURCE is an absolute path or relative path
         if os.path.isabs(PDF_SOURCE):
             pdf_path = PDF_SOURCE
         else:
             pdf_path = os.path.join("data", PDF_SOURCE)
         
-        # Kiểm tra file tồn tại
         if not os.path.exists(pdf_path):
             return f"Không tìm thấy file {pdf_path}.", False
             
-        # Kiểm tra cache
         if not force_reprocess and os.path.exists("faiss_index") and os.path.exists("faiss_index/index.faiss"):
             return f"Đã tải {PDF_SOURCE} từ bộ nhớ cache.", True
         
-        # Xử lý PDF
         start_time = time.time()
         text_with_metadata = []
         
@@ -52,14 +48,12 @@ def process_directory_pdfs(force_reprocess=False, get_text_chunks_fn=None, get_v
         if not text_with_metadata:
             return "Không thể trích xuất văn bản từ file PDF.", False
             
-        # Tạo chunks và vector store
         chunks = get_text_chunks_fn(text_with_metadata)
         if not chunks:
             return "Không thể tạo chunks từ văn bản.", False
             
         vectorstore = get_vector_database_fn(chunks)
         
-        # Tạo thư mục faiss_index nếu chưa có
         if not os.path.exists("faiss_index"):
             os.makedirs("faiss_index")
         
@@ -68,6 +62,3 @@ def process_directory_pdfs(force_reprocess=False, get_text_chunks_fn=None, get_v
         
     except Exception as e:
         return f"Lỗi khi xử lý PDF: {str(e)}", False
-
-
-

@@ -6,8 +6,6 @@ from models.managers.json import JsonQAHandler
 from config import PDF_SOURCE
 
 json = JsonQAHandler()
-
-# Cải tiến 1: Cache các vector database để tránh load lại nhiều lần
 vector_database = None
 
 def load_vector_db_once():
@@ -17,8 +15,6 @@ def load_vector_db_once():
     return vector_database
 
 def print_reference_sources(response, json_match=None):
-    """In ra nguồn tham khảo từ cả PDF và JSON"""
-    # In nguồn tham khảo từ PDF
     if response and "source_documents" in response:
         source_grouping = {}
         for doc in response["source_documents"]:
@@ -33,7 +29,6 @@ def print_reference_sources(response, json_match=None):
             print(f"- {source}: {len(docs)} đoạn văn")
         print("="*50 + "\n")
     
-    # In nguồn tham khảo từ JSON nếu có
     if json_match:
         print("\n" + "="*50)
         print("Nguồn tham khảo JSON:")
@@ -42,7 +37,6 @@ def print_reference_sources(response, json_match=None):
         print("="*50 + "\n")
 
 def process_query(prompt):
-    """Xử lý câu hỏi và trả lời từ chatbot"""
     cached_result, cache_hit, time_saved = query_cache.get(prompt)
     if cache_hit:
         return f"{cached_result}\n\n*(Kết quả từ cache, tiết kiệm {time_saved:.2f}s)*"
@@ -52,7 +46,6 @@ def process_query(prompt):
         return small_talk_response
     
     try:
-        # Cải tiến 2: Cache vector database để tránh load lại nhiều lần
         vector_database = load_vector_db_once()
         if not vector_database:
             return "Xin lỗi, tôi không thể xử lý yêu cầu của bạn. Vui lòng thử lại sau."
@@ -86,4 +79,3 @@ def process_query(prompt):
         
     except Exception as e:
         return "Xin lỗi, tôi không thể xử lý yêu cầu của bạn. Vui lòng thử lại sau."
-    

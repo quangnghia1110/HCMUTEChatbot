@@ -16,7 +16,6 @@ app = Flask(__name__)
 CORS(app)
 
 def initialize_data():
-    """Xử lý PDF nếu chưa có FAISS index"""
     if not (os.path.exists("faiss_index") and os.path.exists("faiss_index/index.faiss")):
         msg, success = process_directory_pdfs(
             force_reprocess=False,

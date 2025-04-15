@@ -1,49 +1,37 @@
-# HCMUTE Chatbot
+# HCMUTE Chatbot - Trợ lý tư vấn thông minh
 
 Hệ thống chatbot được thiết kế để trả lời câu hỏi dựa trên tài liệu PDF và các cặp câu hỏi-câu trả lời được định nghĩa trước, tập trung vào thông tin sổ tay sinh viên.
 
 ## Tính năng
 
-- Xử lý tài liệu PDF và chuyển đổi thành vector
-- Tìm kiếm ngữ nghĩa sử dụng cơ sở dữ liệu vector FAISS
-- Trả lời câu hỏi sử dụng mô hình Gemini của Google
-- Hệ thống cache để phản hồi nhanh hơn
-- Xử lý small talk
-- Hỗ trợ câu hỏi-trả lời dựa trên JSON
-- Giao diện REST API
+- **Xử lý tài liệu PDF**: Chuyển đổi tài liệu thành các đoạn văn bản (chunk) và vector để tìm kiếm
+- **Tìm kiếm ngữ nghĩa**: Sử dụng cơ sở dữ liệu vector FAISS kết hợp với BM25 để tìm kiếm thông tin chính xác
+- **Trả lời thông minh**: Sử dụng mô hình Gemini của Google để sinh câu trả lời dựa trên ngữ cảnh
+- **Hệ thống cache**: Giảm thời gian phản hồi và tài nguyên xử lý lặp lại
+- **Small Talk**: Khả năng nhận diện và trả lời các câu hỏi chào hỏi, tạm biệt, cảm ơn...
+- **Câu hỏi-trả lời định nghĩa trước**: Hỗ trợ dữ liệu JSON để trả lời nhanh các câu hỏi phổ biến
+- **Giao diện API**: REST API dễ dàng tích hợp với các ứng dụng khác
 
 ## Công nghệ sử dụng
 
 ### RAG (Retrieval-Augmented Generation)
-Hệ thống được xây dựng trên nền tảng RAG - một kỹ thuật kết hợp giữa mô hình ngôn ngữ lớn (LLM) với hệ thống truy xuất thông tin:
-- **Truy xuất (Retrieval)**: Khi nhận câu hỏi, hệ thống tìm kiếm thông tin liên quan trong cơ sở dữ liệu vector FAISS thông qua kỹ thuật tìm kiếm ngữ nghĩa. Quá trình này giúp tìm ra những đoạn văn bản liên quan nhất từ tài liệu nguồn.
-- **Tăng cường (Augmentation)**: Thông tin được truy xuất sẽ được đưa vào prompt làm ngữ cảnh bổ sung cho mô hình LLM.
-- **Sinh nội dung (Generation)**: Mô hình Gemini sẽ sinh câu trả lời dựa trên ngữ cảnh được cung cấp, đảm bảo câu trả lời chính xác và dựa trên thông tin từ tài liệu gốc.
-
-Ưu điểm RAG trong dự án:
-- Cải thiện độ chính xác thông tin
-- Giảm thiểu "ảo giác" (hallucination) của LLM
-- Luôn cập nhật với dữ liệu trong tài liệu nguồn
-- Trả lời dựa trên nguồn dữ liệu cụ thể
+Hệ thống hoạt động trên nền tảng RAG - kết hợp giữa mô hình ngôn ngữ lớn (LLM) với hệ thống truy xuất thông tin:
+- **Truy xuất (Retrieval)**: Khi nhận câu hỏi, hệ thống tìm kiếm thông tin liên quan trong cơ sở dữ liệu vector FAISS qua kỹ thuật tìm kiếm ngữ nghĩa, kết hợp với tìm kiếm từ khóa BM25.
+- **Tăng cường (Augmentation)**: Thông tin được truy xuất sẽ trở thành ngữ cảnh bổ sung cho prompt gửi đến mô hình LLM.
+- **Sinh nội dung (Generation)**: Mô hình Gemini sinh câu trả lời dựa trên ngữ cảnh được cung cấp, đảm bảo chính xác và căn cứ vào tài liệu.
 
 ### LangChain
-LangChain được sử dụng như framework chính để xây dựng hệ thống RAG:
-- **Text Splitters**: LangChain cung cấp các công cụ chia nhỏ văn bản (RecursiveCharacterTextSplitter) giúp phân đoạn tài liệu PDF thành các phần nhỏ phù hợp.
-- **Embeddings**: Tích hợp với Google Generative AI Embeddings để chuyển đổi văn bản thành vector.
-- **Vector Stores**: Sử dụng FAISS làm cơ sở dữ liệu vector qua wrapper của LangChain.
-- **Retrieval Chains**: Xây dựng chuỗi xử lý để truy xuất tài liệu liên quan và kết hợp với LLM.
-- **Prompt Templates**: Định nghĩa template cho prompt để tối ưu hóa câu trả lời.
+LangChain được sử dụng làm framework chính để xây dựng hệ thống RAG:
+- **Text Splitters**: Sử dụng RecursiveCharacterTextSplitter để phân đoạn tài liệu thành các phần nhỏ với kích thước và độ chồng lấp có thể tùy chỉnh
+- **Embeddings**: Tích hợp với Google Generative AI Embeddings để chuyển đổi văn bản thành vector
+- **Vector Stores**: Sử dụng FAISS làm cơ sở dữ liệu vector qua wrapper của LangChain
+- **Retrieval Chains**: Xây dựng chuỗi xử lý để truy xuất tài liệu và kết hợp với LLM
+- **Prompt Templates**: Template chuyên biệt tối ưu hóa chất lượng câu trả lời
 
 ### Google Gemini
-Gemini là mô hình LLM của Google được sử dụng cho hai mục đích chính:
-- **Embedding**: Sử dụng Gemini Embedding để chuyển đổi văn bản thành vector ngữ nghĩa chất lượng cao.
-- **Text Generation**: Sử dụng Gemini 1.5 Flash để sinh câu trả lời dựa trên ngữ cảnh và câu hỏi.
-
-Ưu điểm của Gemini trong dự án:
-- Hiệu suất cao với văn bản tiếng Việt
-- Khả năng hiểu ngữ cảnh dài và phức tạp
-- Tốc độ xử lý nhanh
-- Chi phí hợp lý
+Mô hình LLM của Google được sử dụng cho:
+- **Embedding**: Chuyển đổi văn bản thành vector ngữ nghĩa 
+- **Text Generation**: Sinh câu trả lời từ ngữ cảnh và câu hỏi
 
 ## Yêu cầu hệ thống
 
@@ -54,10 +42,10 @@ Gemini là mô hình LLM của Google được sử dụng cho hai mục đích 
 
 ## Cài đặt
 
-1. Clone repository về máy:
+1. Clone repository:
 ```bash
-git clone https://github.com/quangnghia1110/HCMUTEChatbot.git
-cd HCMUTEChatbot
+git clone https://github.com/yourusername/hcmute-consultant-chatbot.git
+cd hcmute-consultant-chatbot
 ```
 
 2. Tạo và kích hoạt môi trường ảo:
@@ -67,14 +55,14 @@ source venv/bin/activate  # Cho Linux/Mac
 venv\Scripts\activate     # Cho Windows
 ```
 
-3. Cài đặt các thư viện phụ thuộc:
+3. Cài đặt thư viện phụ thuộc:
 ```bash
 pip install -r requirements.txt
 ```
 
 4. Tạo tệp `.env` với cấu hình cần thiết (xem phần Cấu hình)
 
-5. Đảm bảo đã đặt tập tin PDF (mặc định SoTaySinhVien2024.pdf) vào thư mục `data/`
+5. Đặt tài liệu PDF vào thư mục `data/`
 
 6. (Tùy chọn) Tạo file JSON câu hỏi-câu trả lời trong thư mục `data/`
 
@@ -83,7 +71,7 @@ pip install -r requirements.txt
 Tạo tệp `.env` với các cấu hình sau:
 
 ```env
-# API Keys
+# Google API
 GOOGLE_API_KEY=your_api_key_here
 
 # Cấu hình mô hình
@@ -93,12 +81,11 @@ TEMPERATURE=0.7
 MAX_OUTPUT_TOKENS=2048
 TOP_K=40
 TOP_P=0.8
+MAX_RETRIES=3
+BASE_DELAY=2
 
 # Cấu hình PDF
-DEFAULT_PDF=SoTaySinhVien2024.pdf
-
-# Cài đặt Cache
-CACHE_MAX_AGE_DAYS=30
+PDF_SOURCE=SoTaySinhVien2024.pdf
 
 # Cài đặt Vector Store
 CHUNK_SIZE=8000
@@ -117,11 +104,11 @@ VECTOR_SEARCH_WEIGHT=1.5
 ## Cấu trúc dự án
 
 ```
-HCMUTEChatbot/
+hcmute-consultant-chatbot/
 │
 ├── data/                   # Thư mục chứa dữ liệu
 │   ├── SoTaySinhVien2024.pdf   # File PDF mặc định
-│   └── output.json         # File JSON chứa cặp câu hỏi-trả lời định nghĩa trước
+│   └── output.json         # File JSON chứa cặp câu hỏi-trả lời
 │
 ├── faiss_index/            # Thư mục lưu trữ vector database
 │   ├── index.faiss         # File chỉ mục FAISS
@@ -143,197 +130,98 @@ HCMUTEChatbot/
 │       └── vector_database.py  # Quản lý FAISS vector database
 │
 ├── output/                 # Thư mục đầu ra và cache
-│   └── query_cache.json    # File cache lưu các câu hỏi và câu trả lời đã xử lý
+│   └── query_cache.json    # File cache lưu các câu hỏi và câu trả lời
 │
 ├── .env                    # File cấu hình biến môi trường
 ├── app.py                  # File chính của ứng dụng
+├── config.py               # File cấu hình hệ thống
 ├── requirements.txt        # Danh sách thư viện cần cài đặt
 └── README.md               # Tài liệu hướng dẫn
 ```
 
-## Kiến trúc RAG chi tiết
-
-### 1. Quá trình xây dựng Vector Database
-
-```
-Tài liệu PDF → PDF Processing → Text Extraction → Text Splitting → Embedding → FAISS Vector DB
-```
-
-1. **Tải tài liệu PDF**:
-   - Đọc từ thư mục `data/` sử dụng PyPDF2
-   - Trích xuất văn bản từ từng trang
-
-2. **Tiền xử lý văn bản**:
-   - Làm sạch văn bản
-   - Thêm metadata (nguồn, trang)
-
-3. **Phân đoạn văn bản**:
-   - Sử dụng LangChain's RecursiveCharacterTextSplitter
-   - Cấu hình kích thước đoạn và độ chồng lấp
-
-4. **Tạo Embedding**:
-   - Sử dụng GoogleGenerativeAIEmbeddings
-   - Chuyển đổi mỗi đoạn văn bản thành vector 768 chiều
-
-5. **Lưu trữ Vector**:
-   - Lưu trong FAISS để tìm kiếm hiệu quả
-   - Lưu metadata kèm theo vector
-
-### 2. Quá trình truy vấn
-
-```
-Câu hỏi → Embedding → Vector Search → BM25 Re-ranking → Context Selection → LLM → Câu trả lời
-```
-
-1. **Xử lý câu hỏi**:
-   - Kiểm tra cache trước
-   - Phát hiện small talk
-   - Chuyển câu hỏi thành embedding
-
-2. **Tìm kiếm ngữ nghĩa**:
-   - Sử dụng FAISS similarity search
-   - Lấy top-k đoạn văn bản liên quan nhất
-
-3. **Re-ranking với BM25**:
-   - Kết hợp tìm kiếm vector với BM25
-   - Cân bằng tìm kiếm ngữ nghĩa với tìm kiếm từ khóa
-
-4. **Xây dựng ngữ cảnh**:
-   - Kết hợp đoạn văn bản được chọn làm ngữ cảnh
-   - Đảm bảo không vượt quá giới hạn token
-
-5. **Sinh câu trả lời**:
-   - Sử dụng Gemini để tạo câu trả lời
-   - Áp dụng prompt template đặc biệt để định hướng mô hình
-
-6. **Lưu cache**:
-   - Lưu câu hỏi, câu trả lời và thời gian xử lý vào cache
-
-## Luồng hoạt động của hệ thống
-
-### 1. Khởi động và chuẩn bị dữ liệu
-
-```
-app.py (initialize_data)
-  ↓
-models/managers/pdf.py (process_directory_pdfs)
-  ↓
-models/processors/text_splitter.py (get_text_chunks)
-  ↓
-models/storages/vector_database.py (get_vector_database)
-```
-
-- **app.py**: Khởi động ứng dụng Flask, kiểm tra xem đã có faiss_index chưa
-- **pdf.py**: Đọc và xử lý file PDF, trích xuất nội dung văn bản
-- **text_splitter.py**: Chia nhỏ văn bản thành các đoạn phù hợp
-- **vector_database.py**: Tạo embeddings và lưu trữ trong database FAISS
-
-### 2. Xử lý truy vấn người dùng
-
-```
-app.py (route /chat)
-  ↓
-models/processors/query_processor.py (process_query)
-  ↓
-models/managers/cache.py (query_cache.get)
-  |
-  ├─ [Cache hit] → Trả về kết quả từ cache
-  │
-  └─ [Cache miss] → models/processors/small_talk.py (is_small_talk)
-      |
-      ├─ [Small talk] → Trả về câu trả lời small talk
-      │
-      └─ [Không phải small talk] → models/storages/vector_database.py (load_vector_database)
-          ↓
-          models/processors/llm_chain.py (get_gemini_response)
-          ↓
-          models/managers/json.py (find_best_match)
-          ↓
-          models/managers/cache.py (query_cache.set)
-          ↓
-          Trả về kết quả cho người dùng
-```
-
-- **app.py**: Nhận request từ người dùng và gọi process_query
-- **query_processor.py**: Điều phối quá trình xử lý truy vấn
-- **cache.py**: Kiểm tra cache trước khi xử lý (tối ưu hiệu suất)
-- **small_talk.py**: Xác định và xử lý câu hỏi chào hỏi, tạm biệt, v.v.
-- **vector_database.py**: Tải cơ sở dữ liệu vector để tìm kiếm
-- **llm_chain.py**: Xử lý câu hỏi bằng mô hình LLM Gemini
-- **json.py**: Tìm kiếm câu trả lời từ dữ liệu JSON định nghĩa trước
-
 ## Chi tiết các thành phần
 
-### 1. PDF Processing (`models/managers/pdf.py`)
-- Xử lý file PDF từ thư mục `data/`
-- Trích xuất nội dung văn bản từ từng trang PDF
-- Lưu thông tin metadata về nguồn tài liệu và số trang
-- Trả về nội dung để xử lý tiếp theo
+### 1. Quản lý cache (`models/managers/cache.py`)
+- Lưu trữ kết quả truy vấn để sử dụng lại khi có truy vấn tương tự
+- Sử dụng hash MD5 của câu hỏi để tìm kiếm nhanh trong cache
+- Lưu trữ thời gian xử lý để đánh giá hiệu suất và hiển thị thời gian tiết kiệm
 
-### 2. Text Splitter (`models/processors/text_splitter.py`)
-- Nhận văn bản đã trích xuất từ PDF
-- Chia nhỏ thành các đoạn (chunks) có độ dài phù hợp
-- Đảm bảo các đoạn có độ chồng lấp (overlap) để không mất thông tin
-- Giữ nguyên metadata trong quá trình xử lý
+### 2. Xử lý JSON Q&A (`models/managers/json.py`)
+- Tải dữ liệu câu hỏi-trả lời từ file output.json
+- Sử dụng thuật toán SequenceMatcher để tìm câu hỏi tương tự
+- Kết hợp score từ matching theo chuỗi và từ khóa cho độ chính xác cao
+- Cho phép thiết lập ngưỡng độ tương đồng (threshold)
 
-### 3. Vector Database (`models/storages/vector_database.py`)
-- Tạo vector embeddings cho các đoạn văn bản
-- Sử dụng Google Generative AI Embeddings
-- Lưu trữ trong cơ sở dữ liệu FAISS cho tìm kiếm tương tự
-- Cung cấp chức năng tìm kiếm tương tự (similarity search)
+### 3. Xử lý PDF (`models/managers/pdf.py`)
+- Đọc và xử lý file PDF từ thư mục `data/`
+- Trích xuất văn bản từ từng trang với metadata đầy đủ
+- Quản lý việc tạo lại hoặc sử dụng lại vector store đã lưu
 
-### 4. Cache System (`models/managers/cache.py`)
-- Lưu trữ kết quả truy vấn vào bộ nhớ cache
-- Sử dụng hash MD5 cho việc tìm kiếm trong cache
-- Quản lý thời hạn cache (mặc định 30 ngày)
-- Lưu cache trong file query_cache.json trong thư mục output/
-- Tiết kiệm thời gian và tài nguyên khi có truy vấn lặp lại
-
-### 5. JSON Q&A Handler (`models/managers/json.py`)
-- Tải dữ liệu câu hỏi-trả lời từ file output.json trong thư mục data/
-- Tìm kiếm câu hỏi tương tự sử dụng thuật toán SequenceMatcher
-- Cung cấp câu trả lời cho câu hỏi phổ biến mà không cần gọi mô hình LLM
-- Tối ưu hóa thời gian phản hồi
-
-### 6. Query Processing (`models/processors/query_processor.py`)
-- Điều phối quá trình xử lý câu hỏi
-- Kiểm tra cache trước khi xử lý
-- Phát hiện small talk và xử lý riêng
-- Gọi mô hình LLM khi cần thiết
-- Lưu trữ kết quả vào cache
-
-### 7. LLM Chain (`models/processors/llm_chain.py`)
+### 4. LLM Chain (`models/processors/llm_chain.py`)
+- Định nghĩa prompt template chi tiết với hướng dẫn định dạng bảng, danh sách...
 - Khởi tạo và cấu hình mô hình Gemini
-- Tạo chuỗi xử lý câu hỏi-trả lời
-- Kết hợp kết quả tìm kiếm vector và tìm kiếm BM25
-- Quản lý prompt template để tối ưu câu trả lời
+- Kết hợp tìm kiếm vector và BM25 cho kết quả tốt nhất
+- Xử lý post-processing cho bảng và dữ liệu có cấu trúc
 
-### 8. Small Talk Handler (`models/processors/small_talk.py`)
-- Nhận diện câu chào hỏi, tạm biệt, cảm ơn, xin lỗi, v.v.
+### 5. Xử lý truy vấn (`models/processors/query_processor.py`)
+- Điều phối luồng xử lý câu hỏi
+- Kiểm tra cache và small talk trước khi truy vấn vector store
+- In nguồn tham khảo để dễ dàng debug và đánh giá
+- Quản lý việc lưu cache và trả về kết quả
+
+### 6. Xử lý Small Talk (`models/processors/small_talk.py`)
+- Phát hiện và phản hồi các câu chào hỏi, tạm biệt, cảm ơn...
 - Lọc nội dung không phù hợp hoặc nhạy cảm
-- Cung cấp câu trả lời phù hợp cho small talk
-- Chuyển hướng người dùng về các câu hỏi liên quan đến tài liệu
+- Hướng người dùng về mục đích chính của chatbot
+- Phát hiện các câu hỏi ngoài phạm vi
 
-### 9. API Interface (`app.py`)
-- Cung cấp giao diện REST API
-- Xử lý yêu cầu HTTP
-- Định dạng kết quả trả về
-- Quản lý các lỗi và exception
+### 7. Phân đoạn văn bản (`models/processors/text_splitter.py`)
+- Sử dụng RecursiveCharacterTextSplitter để chia nhỏ văn bản
+- Cấu hình kích thước chunk và độ chồng lấp
+- Bảo toàn metadata trong quá trình xử lý
 
-## Sử dụng
+### 8. Vector Database (`models/storages/vector_database.py`)
+- Tạo và quản lý cơ sở dữ liệu vector FAISS
+- Chuyển đổi văn bản thành embeddings
+- Lưu trữ và tải vector database từ đĩa
 
-1. Khởi động server:
-```bash
-python app.py
+### 9. API (`app.py`)
+- Cung cấp REST API endpoint `/chat`
+- Khởi tạo dữ liệu khi ứng dụng khởi động
+- Xử lý request và định dạng response
+- Đo thời gian xử lý cho từng truy vấn
+
+## Luồng xử lý
+
+### 1. Khởi tạo dữ liệu
+```
+app.py (initialize_data) → pdf.py (process_directory_pdfs) → text_splitter.py (get_text_chunks) → vector_database.py (get_vector_database)
 ```
 
-2. Gửi yêu cầu đến API:
-```bash
-curl "http://localhost:5000/chat?text=Câu_hỏi_của_bạn_ở_đây"
+### 2. Xử lý truy vấn
+```
+app.py (/chat) → query_processor.py (process_query) → 
+  ├─ cache.py (query_cache.get) → [Cache hit] → Trả về kết quả
+  └─ [Cache miss] → small_talk.py (is_small_talk) →
+      ├─ [Small talk] → Trả về câu trả lời small talk
+      └─ [Không phải small talk] → 
+          ├─ vector_database.py (load_vector_database)
+          ├─ llm_chain.py (get_gemini_response)
+          ├─ json.py (find_best_match)
+          └─ cache.py (query_cache.set)
 ```
 
-## Định dạng phản hồi
+## API Endpoints
 
+### Truy vấn chatbot
+```
+GET /chat?text=<câu_hỏi>
+```
+
+#### Tham số
+- `text`: Câu hỏi của người dùng
+
+#### Phản hồi
 ```json
 {
     "status": "success",
@@ -347,15 +235,15 @@ curl "http://localhost:5000/chat?text=Câu_hỏi_của_bạn_ở_đây"
 }
 ```
 
-## Cách tùy chỉnh và mở rộng
+## Cách tùy chỉnh
 
 ### Thêm tài liệu mới
 1. Đặt file PDF mới vào thư mục `data/`
-2. Chỉnh sửa biến `PDF_SOURCE` trong file `.env` hoặc trong `models/processors/query_processor.py`
-3. Khởi động lại ứng dụng để xử lý tài liệu mới
+2. Cập nhật biến `PDF_SOURCE` trong file `.env`
+3. Khởi động lại ứng dụng
 
 ### Thêm câu hỏi-trả lời định sẵn
-1. Chỉnh sửa hoặc tạo file `output.json` trong thư mục `data/` với định dạng:
+1. Tạo hoặc cập nhật file `data/output.json` với định dạng:
 ```json
 [
   {
@@ -369,33 +257,22 @@ curl "http://localhost:5000/chat?text=Câu_hỏi_của_bạn_ở_đây"
 ]
 ```
 
-### Điều chỉnh mô hình Gemini
-1. Thay đổi model name trong file `.env` (GEMINI_MODEL)
-2. Điều chỉnh các tham số như TEMPERATURE, TOP_K, TOP_P để thay đổi đặc tính sinh văn bản
+### Điều chỉnh độ chính xác
+- Thay đổi `TEMPERATURE`, `TOP_K`, `TOP_P` trong file `.env` để điều chỉnh tính sáng tạo của mô hình
+- Cập nhật `SEMANTIC_WEIGHT`, `KEYWORD_WEIGHT` để thay đổi tỷ lệ giữa tìm kiếm ngữ nghĩa và từ khóa
+- Điều chỉnh `VECTOR_SEARCH_K` để tăng/giảm số lượng đoạn văn bản được tìm kiếm
 
-### Tối ưu hóa Vector Search
-1. Điều chỉnh CHUNK_SIZE và CHUNK_OVERLAP trong file `.env` để thay đổi kích thước đoạn văn bản
-2. Thay đổi VECTOR_SEARCH_K để tăng/giảm số lượng kết quả tìm kiếm
-3. Điều chỉnh VECTOR_SEARCH_WEIGHT và KEYWORD_WEIGHT để cân bằng giữa tìm kiếm ngữ nghĩa và từ khóa
+## Khởi động ứng dụng
 
-## Lưu ý quan trọng
+```bash
+python app.py
+```
 
-1. **Chuẩn bị dữ liệu**:
-   - Đặt file PDF vào thư mục `data/` (mặc định là `SoTaySinhVien2024.pdf`)
-   - Tạo file JSON câu hỏi-trả lời trong thư mục `data/` (output.json)
+Ứng dụng sẽ chạy trên cổng 2000 theo mặc định: `http://0.0.0.0:2000`
 
-2. **API Key**:
-   - Bắt buộc phải có Google API Key cho Gemini trong file `.env`
-   - Không chia sẻ API key công khai
+## Lưu ý
 
-3. **Thư mục lưu trữ**:
-   - Thư mục `faiss_index/` sẽ được tạo tự động khi chạy lần đầu
-   - Thư mục `output/` chứa cache (query_cache.json) và các tệp tạm thời
-
-4. **Tùy chỉnh mô hình**:
-   - Có thể thay đổi mô hình Gemini trong file `.env` (mặc định là gemini-1.5-flash)
-   - Điều chỉnh các tham số như TEMPERATURE, TOP_K, TOP_P để thay đổi chất lượng câu trả lời
-
-5. **Hiệu suất**:
-   - Lần đầu tiên chạy sẽ tốn thời gian để tạo vector database
-   - Các lần chạy sau sẽ nhanh hơn nhiều nhờ sử dụng cache
+- Khi chạy lần đầu, hệ thống sẽ tạo vector database từ tài liệu PDF, quá trình này có thể mất thời gian
+- Cần đảm bảo API key Gemini hợp lệ trong file `.env`
+- Kết quả tìm kiếm sẽ phụ thuộc vào chất lượng tài liệu PDF và cách phân đoạn văn bản
+- Tùy thuộc vào kích thước và độ phức tạp của tài liệu, có thể cần điều chỉnh `CHUNK_SIZE` và `CHUNK_OVERLAP`
