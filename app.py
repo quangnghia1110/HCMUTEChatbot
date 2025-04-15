@@ -23,9 +23,17 @@ def initialize_data():
             get_vector_database_fn=get_vector_database
         )
         if not success:
-            print("❌ Lỗi khi xử lý PDF:", msg)
+            print(f"❌ Lỗi khi xử lý PDF: {msg}")
         return success
     return True
+
+def create_response(status, message, data):
+    """Tạo phản hồi JSON với cấu trúc thống nhất"""
+    return jsonify({
+        "status": status,
+        "message": message,
+        "data": data
+    })
 
 @app.route('/chat', methods=['GET'])
 def chat():
@@ -33,13 +41,7 @@ def chat():
     question = request.args.get("text", "").strip()
     
     if not question:
-        return jsonify({
-            "status": "fail",
-            "message": "Vui lòng nhập câu hỏi",
-            "data": {
-                "time": round(time.time() - start_time, 2)
-            }
-        }), 400
+        return create_response("fail", "Vui lòng nhập câu hỏi", {"time": round(time.time() - start_time, 2)}), 400
 
     try:
         answer = process_query(question)
@@ -48,34 +50,24 @@ def chat():
         if "*(Kết quả từ cache" in answer:
             parts = answer.split("\n\n*(")
             main_answer = parts[0]
-            return jsonify({
-                "status": "success",
-                "message": "Lấy câu trả lời từ cache thành công",
-                "data": {
-                    "question": question,
-                    "answer": main_answer,
-                    "source": "cache",
-                    "time": process_time
-                }
+            return create_response("success", "Lấy câu trả lời từ cache thành công", {
+                "question": question,
+                "answer": main_answer,
+                "time": process_time
             })
 
-        return jsonify({
-            "status": "success",
-            "message": "Tìm câu trả lời thành công",
-            "data": {
-                "question": question,
-                "answer": answer,
-                "source": "search",
-                "time": process_time
-            }
+        return create_response("success", "Tìm câu trả lời thành công", {
+            "question": question,
+            "answer": answer,
+            "time": process_time
         })
 
+    except ValueError as ve:
+        return create_response("error", f"Lỗi giá trị: {str(ve)}", {"time": round(time.time() - start_time, 2)}), 400
+    except ConnectionError as ce:
+        return create_response("error", f"Lỗi kết nối: {str(ce)}", {"time": round(time.time() - start_time, 2)}), 503
     except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": f"Lỗi khi xử lý câu hỏi: {str(e)}",
-            "data": {"time": round(time.time() - start_time, 2)}
-        }), 500
+        return create_response("error", f"Lỗi khi xử lý câu hỏi: {str(e)}", {"time": round(time.time() - start_time, 2)}), 500
 
 if initialize_data():
     print("✅ Dữ liệu đã khởi tạo")

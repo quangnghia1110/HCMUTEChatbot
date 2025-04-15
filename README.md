@@ -75,7 +75,7 @@ Tạo tệp `.env` với các cấu hình sau:
 GOOGLE_API_KEY=your_api_key_here
 
 # Cấu hình mô hình
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.0-flash-lite
 EMBEDDING_MODEL=models/embedding-001
 TEMPERATURE=0.7
 MAX_OUTPUT_TOKENS=2048

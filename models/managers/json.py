@@ -35,9 +35,6 @@ class JsonQAHandler:
         except Exception as e:
             print(f"Lỗi file {self.json_file}: {e}")
                 
-    def similarity_ratio(self, a, b):
-        return SequenceMatcher(None, a.lower(), b.lower()).ratio()
-    
     def find_best_match(self, question, threshold=0.55):
         if not self.qa_pairs:
             print("WARNING: No QA pairs loaded")
