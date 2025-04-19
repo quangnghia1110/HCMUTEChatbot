@@ -3,12 +3,10 @@ import time
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
-from rank_bm25 import BM25Okapi
 from config import (
     GEMINI_MODEL, TEMPERATURE, MAX_OUTPUT_TOKENS, 
     TOP_K, TOP_P, MAX_RETRIES, BASE_DELAY, MAX_DOCS,
-    SEMANTIC_WEIGHT, KEYWORD_WEIGHT, VECTOR_SEARCH_K,
-    VECTOR_CONTENT_PREVIEW, VECTOR_SEARCH_WEIGHT
+    VECTOR_SEARCH_K,
 )
 
 def get_conversational_chain():
@@ -92,24 +90,10 @@ def get_gemini_response(vector_database, user_question, filter_pdf=None):
             docs = [doc for doc_id, doc in vector_database.docstore._dict.items() if doc.metadata.get("source") == filter_pdf]
             if not docs:
                 return {"output_text": "Không tìm thấy thông tin. Vui lòng hỏi lại.", "source_documents": [], "structured_tables": []}
-            texts = [doc.page_content for doc in docs]
-            tokenized_corpus = [text.lower().split() for text in texts]
-            bm25 = BM25Okapi(tokenized_corpus)
-            bm25_scores = bm25.get_scores(user_question.lower().split())
-            scored_docs = sorted([(doc, score) for doc, score in zip(docs, bm25_scores) if score > 0], key=lambda x: x[1], reverse=True)
-            relevant_docs = [doc for doc, _ in scored_docs] or docs
+            relevant_docs = docs[:MAX_DOCS]
         else:
-            vector_docs = vector_database.similarity_search_with_relevance_scores(user_question, k=VECTOR_SEARCH_K)
-            texts = [doc.page_content for doc, _ in vector_docs]
-            tokenized_corpus = [text.lower().split() for text in texts]
-            bm25 = BM25Okapi(tokenized_corpus)
-            bm25_scores = bm25.get_scores(user_question.lower().split())
-            combined_docs = {}
-            for i, (doc, vector_score) in enumerate(vector_docs):
-                doc_hash = hashlib.md5(doc.page_content[:VECTOR_CONTENT_PREVIEW].encode()).hexdigest()
-                combined_score = (vector_score * SEMANTIC_WEIGHT + bm25_scores[i] * KEYWORD_WEIGHT) * VECTOR_SEARCH_WEIGHT
-                combined_docs[doc_hash] = (doc, max(combined_docs.get(doc_hash, (None, 0))[1], combined_score))
-            relevant_docs = [doc for doc, _ in sorted(combined_docs.values(), key=lambda x: x[1], reverse=True)]
+            vector_docs = vector_database.similarity_search(user_question, k=VECTOR_SEARCH_K)
+            relevant_docs = vector_docs[:MAX_DOCS]
         
         for doc in relevant_docs:
             if not hasattr(doc, 'metadata'):
@@ -117,7 +101,6 @@ def get_gemini_response(vector_database, user_question, filter_pdf=None):
             doc.metadata.setdefault('source', 'không xác định')
             doc.metadata.setdefault('page', 'không xác định')
         
-        relevant_docs = relevant_docs[:MAX_DOCS]
         retries = 0
         while retries < MAX_RETRIES:
             try:
